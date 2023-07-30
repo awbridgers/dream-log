@@ -6,13 +6,25 @@ import {
   View,
 } from 'react-native';
 import appColors from '../colors';
-import {useState} from 'react';
+import {useRef, useState} from 'react';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamsList } from '../types';
+import { Auth, getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { fb } from '../firebaseConfig';
 
-const Login = () => {
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
+type Props = NativeStackScreenProps<RootStackParamsList, 'Login'>
+
+
+const Login = ({navigation}: Props) => {
+  const [email, setEmail] = useState<string>('test@test.com');
+  const [password, setPassword] = useState<string>('qazzaq');
+  const authRef = useRef<Auth>(getAuth(fb))
   const submit = () => {
-    console.log(email, password);
+    signInWithEmailAndPassword(authRef.current, email, password).then((user)=>{
+      console.log(user)
+    }).catch((e=>{
+      console.log(e)
+    }))
   };
   const signUp = ()=>{
     console.log('sign up!')
@@ -29,6 +41,7 @@ const Login = () => {
             style={styles.input}
             onChangeText={(text) => setEmail(text)}
             //placeholder='Email'
+            value = {email}
           />
         </View>
         <View style={styles.textContainer}>
@@ -39,6 +52,7 @@ const Login = () => {
             secureTextEntry
             onChangeText={(text) => setPassword(text)}
             //placeholder='password'
+            value = {password}
           />
         </View>
         <TouchableOpacity style={styles.button} onPress={submit}>
