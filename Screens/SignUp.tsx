@@ -7,11 +7,12 @@ import {
   View,
 } from 'react-native';
 import appColors from '../colors';
-import {useRef, useState} from 'react';
+import {useContext, useEffect, useRef, useState} from 'react';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamsList} from '../types';
 import {fb} from '../firebaseConfig';
 import {Auth, createUserWithEmailAndPassword, getAuth} from 'firebase/auth';
+import {AuthContext} from '../App';
 
 type Props = NativeStackScreenProps<RootStackParamsList, 'SignUp'>;
 
@@ -21,24 +22,36 @@ const SignUp = ({navigation}: Props) => {
   const [confirm, setConfirm] = useState<string>('');
   const [error, setError] = useState<string>('');
   const authRef = useRef<Auth>(getAuth(fb));
+  const user = useContext(AuthContext);
   const submit = async () => {
-    setError('')
+    setError('');
     if (password !== confirm) {
       Alert.alert('Passwords do not match');
       setError('passwords do not match.');
     } else {
-      createUserWithEmailAndPassword(authRef.current, email, password).catch(
+      createUserWithEmailAndPassword(authRef.current, email, password).then(()=>Alert.alert('Account Created Successfully!')).catch(
         (e) => {
           if (e instanceof Error) {
-
-            const message = e.message.includes('email') ? 'Invalid Email address' :  e.message.replace('Firebase: ', '').replace(/\(.*\)./, '')
-            Alert.alert('Error', message);
-            setError(message);
+            console.log(e);
+            const errorCode = e.message.match(/\(.+\)/);
+            const errorMessage = e.message.replace(/\(.+\)/, '').replace('Firebase:', '');
+            const [titleRaw] = errorCode ? errorCode : [''];
+            const title = titleRaw
+              .replace(/\(.+\//g, '')
+              .replace(/-/g, ' ')
+              .replace(')', '');
+            Alert.alert(`Error: ${title}`, errorMessage);
+            setError(title)
           }
         }
       );
     }
   };
+  useEffect(() => {
+    if (user) {
+      navigation.navigate('Home');
+    }
+  }, []);
   return (
     <View style={styles.container}>
       <View>
@@ -50,41 +63,41 @@ const SignUp = ({navigation}: Props) => {
         </View>
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Email</Text>
-          <TextInput 
-            textContentType= 'emailAddress'
-            value = {email}
-            inputMode = 'email'
+          <TextInput
+            textContentType="emailAddress"
+            value={email}
+            inputMode="email"
             style={[
               styles.input,
               error.includes('email') ? styles.inputError : {},
             ]}
-            onChangeText={(text)=>setEmail(text)}
+            onChangeText={(text) => setEmail(text)}
           />
         </View>
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Password</Text>
           <TextInput
-          value = {password}
+            value={password}
             textContentType="password"
             secureTextEntry
             style={[
               styles.input,
               error.includes('password') ? styles.inputError : {},
             ]}
-            onChangeText={(text)=>setPassword(text)}
+            onChangeText={(text) => setPassword(text)}
           />
         </View>
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Confirm Password</Text>
           <TextInput
-          value = {confirm}
+            value={confirm}
             textContentType="password"
             secureTextEntry
             style={[
               styles.input,
               error.includes('password') ? styles.inputError : {},
             ]}
-            onChangeText={(text)=>setConfirm(text)}
+            onChangeText={(text) => setConfirm(text)}
           />
         </View>
         <TouchableOpacity style={styles.button} onPress={submit}>
@@ -143,12 +156,11 @@ const styles = StyleSheet.create({
   },
   error: {
     alignSelf: 'center',
-
   },
   errorText: {
     color: 'red',
     fontSize: 20,
-    textAlign: 'center'
+    textAlign: 'center',
   },
 });
 

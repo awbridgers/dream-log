@@ -6,11 +6,12 @@ import {
   View,
 } from 'react-native';
 import appColors from '../colors';
-import {useRef, useState} from 'react';
+import {useContext, useEffect, useRef, useState} from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamsList } from '../types';
-import { Auth, getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { Auth, User, getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { fb } from '../firebaseConfig';
+import { AuthContext } from '../App';
 
 type Props = NativeStackScreenProps<RootStackParamsList, 'Login'>
 
@@ -19,6 +20,7 @@ const Login = ({navigation}: Props) => {
   const [email, setEmail] = useState<string>('test@test.com');
   const [password, setPassword] = useState<string>('qazzaq');
   const authRef = useRef<Auth>(getAuth(fb))
+  const user = useContext(AuthContext)
   const submit = () => {
     signInWithEmailAndPassword(authRef.current, email, password).then((user)=>{
       console.log(user)
@@ -27,8 +29,14 @@ const Login = ({navigation}: Props) => {
     }))
   };
   const signUp = ()=>{
-    console.log('sign up!')
+    navigation.navigate('SignUp')
   }
+  useEffect(()=>{
+    //if a user is already logged in, move them to the home screen
+    if(user){
+      navigation.navigate('Home')
+    }
+  },[])
   return (
     <View style={styles.container}>
       <View>
