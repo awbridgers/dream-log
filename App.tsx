@@ -15,17 +15,25 @@ import {
   useNavigationContainerRef,
 } from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {RootStackParamsList} from './types';
+import {Log, RootStackParamsList} from './types';
 import Login from './Screens/Login';
 import SignUp from './Screens/SignUp';
 import {initializeApp} from 'firebase/app';
 import {Auth, User, getAuth, onAuthStateChanged, signOut} from 'firebase/auth';
 import {createContext, useEffect, useRef, useState} from 'react';
-import {Firestore} from 'firebase/firestore';
-import {fb} from './firebaseConfig';
-
-export const AuthContext = createContext<User | null>(null);
-export const StoreContext = createContext<Firestore | null>(null);
+import {
+  Firestore,
+  collection,
+  doc,
+  getFirestore,
+  onSnapshot,
+  query,
+  orderBy,
+} from 'firebase/firestore';
+import {fb} from './firebase/firebaseConfig';
+import {AuthContext} from './firebase/authContext';
+import Home from './Screens/Home';
+import Dream from './Screens/Dream';
 
 const MyTheme = {
   ...DarkTheme,
@@ -36,23 +44,23 @@ const MyTheme = {
   },
 };
 
-const Home = () => {
-  const auth = getAuth(fb);
-  console.log(auth.currentUser);
-  return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <TouchableOpacity
-        onPress={() =>
-          signOut(auth).then(() => console.log('signedOut'))
-        }
-      >
-        <Text>Logout</Text>
-      </TouchableOpacity>
-      <StatusBar style="auto" />
-    </View>
-  );
-};
+// const Home = () => {
+//   const auth = getAuth(fb);
+//   console.log(auth.currentUser);
+//   return (
+//     <View style={styles.container}>
+//       <Text>Open up App.tsx to start working on your app!</Text>
+//       <TouchableOpacity
+//         onPress={() =>
+//           signOut(auth).then(() => console.log('signedOut'))
+//         }
+//       >
+//         <Text>Logout</Text>
+//       </TouchableOpacity>
+//       <StatusBar style="auto" />
+//     </View>
+//   );
+// };
 
 const Stack = createNativeStackNavigator<RootStackParamsList>();
 
@@ -60,13 +68,9 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const navigationRef = useNavigationContainerRef<RootStackParamsList>();
   const [navReady, setNavReady] = useState<boolean>(false);
+  const [logs, setLogs] = useState<Log[]>([]);
   const authRef = useRef<Auth>(getAuth(fb));
-
-  useEffect(() => {
-    if (authRef.current.currentUser && navReady) {
-      navigationRef.navigate('Home');
-    }
-  }, [navReady]);
+  const db = useRef<Firestore>(getFirestore(fb));
 
   useEffect(() => {
     if (navReady) {
@@ -77,8 +81,8 @@ export default function App() {
 
           navigationRef.navigate('Home');
         } else {
-          console.log(user)
-          
+          console.log(user);
+
           //user is logged out
           if (user) {
             console.log('logging out ' + user);
@@ -99,7 +103,11 @@ export default function App() {
       <AuthContext.Provider value={user}>
         <StatusBar style="light"></StatusBar>
         <Stack.Navigator initialRouteName="Login">
-          <Stack.Screen name="Home" component={Home} />
+          <Stack.Screen
+            name="Home"
+            component={Home}
+            options={{headerShown: false}}
+          />
           <Stack.Screen
             name="Login"
             component={Login}
@@ -108,7 +116,14 @@ export default function App() {
           <Stack.Screen
             name="SignUp"
             component={SignUp}
-            options={{headerShown: false}}
+            // options={{headerShown: false}}
+          />
+          <Stack.Screen
+            name="Dream"
+            component={Dream}
+            initialParams={{}}
+            options={({route}) => ({headerTitle: new Intl.DateTimeFormat('en-US', {dateStyle: 'short'}).format(
+              new Date(route.params.dream.date * 1000)), headerTitleAlign: 'center'})}
           />
         </Stack.Navigator>
       </AuthContext.Provider>

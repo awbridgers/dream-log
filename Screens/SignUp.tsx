@@ -10,9 +10,9 @@ import appColors from '../colors';
 import {useContext, useEffect, useRef, useState} from 'react';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamsList} from '../types';
-import {fb} from '../firebaseConfig';
+import {fb} from '../firebase/firebaseConfig';
 import {Auth, createUserWithEmailAndPassword, getAuth} from 'firebase/auth';
-import {AuthContext} from '../App';
+import { AuthContext } from '../firebase/authContext';
 
 type Props = NativeStackScreenProps<RootStackParamsList, 'SignUp'>;
 

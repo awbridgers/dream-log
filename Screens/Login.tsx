@@ -6,12 +6,13 @@ import {
   View,
 } from 'react-native';
 import appColors from '../colors';
-import {useContext, useEffect, useRef, useState} from 'react';
+import {useCallback, useContext, useEffect, useRef, useState} from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamsList } from '../types';
 import { Auth, User, getAuth, signInWithEmailAndPassword } from 'firebase/auth';
-import { fb } from '../firebaseConfig';
-import { AuthContext } from '../App';
+import { fb } from '../firebase/firebaseConfig';
+import { AuthContext } from '../firebase/authContext';
+import { useFocusEffect } from '@react-navigation/native';
 
 type Props = NativeStackScreenProps<RootStackParamsList, 'Login'>
 
@@ -31,12 +32,13 @@ const Login = ({navigation}: Props) => {
   const signUp = ()=>{
     navigation.navigate('SignUp')
   }
-  useEffect(()=>{
-    //if a user is already logged in, move them to the home screen
-    if(user){
-      navigation.navigate('Home')
-    }
-  },[])
+  useFocusEffect(
+    useCallback(()=>{
+      if(user){
+        navigation.navigate('Home')
+      }
+    }, [user])
+  )
   return (
     <View style={styles.container}>
       <View>
