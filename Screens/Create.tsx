@@ -35,7 +35,7 @@ const Create = () => {
 
   const submit = async () => {
     try {
-      const keywords = removeStopwords(`${title} ${dreamPlot}`.split(' '));
+      const keywords = removeStopwords(`${title} ${dreamPlot}`.split(' ').filter(x=>x!==''));
       console.log(keywords);
       const newDream = {
         title,
