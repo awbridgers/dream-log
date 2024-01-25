@@ -10,6 +10,7 @@ export type RootStackParamsList = {
 export type TabParamsList = {
   Logs : NavigatorScreenParams<RootStackParamsList>;
   Create: undefined;
+  Profile: undefined;
 
 }
 

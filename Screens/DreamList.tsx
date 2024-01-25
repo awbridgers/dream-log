@@ -56,9 +56,7 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
   const callOnScrollEnd = useRef<boolean>(false)
   useEffect(()=>{
     const fetch = async () => {
-      console.log(isRefreshingList)
       if (user && fetchesRemaining.current && isRefreshingList) {
-        console.log('fetch initiated')
         setIsLoading(true);
         const searchKeywords =
           searchTerms.length > 0
@@ -68,8 +66,6 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
                 searchTerms
               )
             : where('date', '!=', null);
-            console.log('where:  ' + searchText)
-            console.log(searchKeywords)
         let q: Query;
         if (!lastFetch.current) {
           //the first fetch, start at the beginning of the database
@@ -79,7 +75,6 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
             limit(10),
             searchKeywords
           );
-          console.log('first fetch')
         } else {
           //a subsequent fetch, start after the last fetched log
           q = query(
@@ -90,7 +85,6 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
             searchKeywords
             
           );
-          console.log('subsequent fetch')
         }
         try {
           const docSnapshot = await getDocs(q);
@@ -122,7 +116,7 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
   
  const search = () =>{
   setLogs([])
-  setSearchTerms(searchText.split(' ').filter(x=>x!== ''))
+  setSearchTerms(searchText.toLowerCase().split(' ').filter(x=>x!== ''))
   setIsRefreshingList(true);
   fetchesRemaining.current = true;
   lastFetch.current = undefined;
@@ -170,7 +164,7 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
           callOnScrollEnd.current = false;
         }}
         onRefresh={() => refresh()}
-        refreshing={isRefreshingList}
+        refreshing={false}
         contentContainerStyle={styles.list}
         ListFooterComponent={
           <View style = {{marginBottom:50}}>

@@ -81,7 +81,7 @@ export default function App() {
 
           navigationRef.navigate('Home');
         } else {
-          console.log(user);
+          //console.log(user);
 
           //user is logged out
           if (user) {
