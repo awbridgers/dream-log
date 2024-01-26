@@ -123,7 +123,7 @@ export default function App() {
             component={Dream}
             initialParams={{}}
             options={({route}) => ({headerTitle: new Intl.DateTimeFormat('en-US', {dateStyle: 'short'}).format(
-              new Date(route.params.dream.date * 1000)), headerTitleAlign: 'center'})}
+              new Date(route.params.dream.date)), headerTitleAlign: 'center'})}
           />
         </Stack.Navigator>
       </AuthContext.Provider>

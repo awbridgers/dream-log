@@ -25,18 +25,24 @@ import {
 } from 'firebase/firestore';
 import {fb} from '../firebase/firebaseConfig';
 
-const Create = () => {
+type Props = {
+  prevDate? : Date;
+  prevTitle? : string;
+  prevPlot?: string;
+  onSubmit?:  (title:string, date: Date, plot: string)=>Promise<void>
+}
+
+const Create = ({prevDate, prevTitle, prevPlot, onSubmit} : Props) => {
   const [showDate, setShowDate] = useState<boolean>(false);
-  const [date, setDate] = useState<Date>(new Date());
-  const [title, setTitle] = useState<string>('Test');
-  const [dreamPlot, setDreamPlot] = useState<string>('This is a test');
+  const [date, setDate] = useState<Date>(prevDate ? prevDate : new Date());
+  const [title, setTitle] = useState<string>(prevTitle ? prevTitle : 'Test');
+  const [dreamPlot, setDreamPlot] = useState<string>(prevPlot ? prevPlot: 'This is a test');
   const user = useContext(AuthContext);
   const db = useRef<Firestore>(getFirestore(fb));
 
   const submit = async () => {
     try {
       const keywords = removeStopwords(`${title} ${dreamPlot}`.toLowerCase().split(' ').filter(x=>x!==''));
-      console.log(keywords);
       const newDream = {
         title,
         date,
@@ -102,7 +108,7 @@ const Create = () => {
           ></TextInput>
         </View>
         <View style={styles.formLine}>
-          <TouchableOpacity onPress={submit} style={styles.button}>
+          <TouchableOpacity onPress={onSubmit ? ()=>onSubmit(title, date, dreamPlot) : ()=>submit()} style={styles.button}>
             <Text style={styles.buttonText}>Submit</Text>
           </TouchableOpacity>
         </View>

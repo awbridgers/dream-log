@@ -97,12 +97,11 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
               data.push({
                 ...(x.data() as Log),
                 id: x.id,
-                date: x.data().date.seconds,
+                date: x.data().date.toMillis(),
               })
             );
             //console.log(data)
             setLogs(prev=>[...prev, ...data]);
-            console.log('\n')
           }
         } catch (e) {
           console.log(e instanceof Error ? e.message : 'Error');
@@ -183,7 +182,7 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
             <View style={styles.dateContainer}>
               <Text style={styles.date}>
                 {new Intl.DateTimeFormat('en-US', {dateStyle: 'short'}).format(
-                  new Date(item.date * 1000)
+                  new Date(item.date)
                 )}
               </Text>
             </View>
