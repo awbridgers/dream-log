@@ -1,49 +1,74 @@
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {Log, RootStackParamsList} from '../types';
-import {View, StyleSheet, Text, ScrollView, TextInput, Alert} from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Text,
+  ScrollView,
+  TextInput,
+  Alert,
+} from 'react-native';
 import {Feather} from '@expo/vector-icons';
 import appColors from '../colors';
 import {useContext, useState} from 'react';
 import Create from './Create';
-import {doc, getFirestore, updateDoc } from 'firebase/firestore';
-import { AuthContext } from '../firebase/authContext';
-import { fb } from '../firebase/firebaseConfig';
-import { removeStopwords } from 'stopword';
+import {doc, getFirestore, updateDoc} from 'firebase/firestore';
+import {AuthContext} from '../firebase/authContext';
+import {fb} from '../firebase/firebaseConfig';
+import {removeStopwords} from 'stopword';
+import { TouchableOpacity } from 'react-native';
 
 type Nav = NativeStackScreenProps<RootStackParamsList, 'Dream'>;
 
 const Dream = ({route, navigation}: Nav) => {
   const {dream} = route.params;
   const [edit, setEdit] = useState<boolean>(false);
-  const user = useContext(AuthContext)
-  const updateDream = async (title:string, date: Date, plot: string)=>{
-    if(user){
-      const dreamRef = doc(getFirestore(fb), `/users/${user.uid}/dreams/${dream.id}`)
-      const newKeywords = removeStopwords(`${title} ${plot}`.toLowerCase().split(' ').filter(x=>x!==''))
-      try{
-        await updateDoc(dreamRef, {date, dreamPlot: plot, title, keywords: newKeywords})
+  const user = useContext(AuthContext);
+  const updateDream = async (title: string, date: Date, plot: string) => {
+    if (user) {
+      const dreamRef = doc(
+        getFirestore(fb),
+        `/users/${user.uid}/dreams/${dream.id}`
+      );
+      const newKeywords = removeStopwords(
+        `${title} ${plot}`
+          .toLowerCase()
+          .split(' ')
+          .filter((x) => x !== '')
+      );
+      try {
+        await updateDoc(dreamRef, {
+          date,
+          dreamPlot: plot,
+          title,
+          keywords: newKeywords,
+        });
         setEdit(false);
-        Alert.alert('Success', 'Dream has been updated.')
-      }
-      catch(e){
+        Alert.alert('Success', 'Dream has been updated.');
+      } catch (e) {
         console.log(e);
-        Alert.alert('Error', 'There was an error updating your dream.')
+        Alert.alert('Error', 'There was an error updating your dream.');
       }
     }
-    
-  }
+  };
   return (
-    <View style = {styles.container}>
+    <View style={styles.container}>
       {edit ? (
-        <View style = {{flex:1}}>
+        <View style={{flex: 1}}>
           <Feather
-              style={{position: 'absolute', right: 5}}
-              name="x-square"
-              size={45}
-              color={"red"}
-              onPress={() => setEdit(false)}
-            />
-          <Create prevDate={new Date(dream.date)} prevTitle={dream.title} prevPlot={dream.dreamPlot} onSubmit={updateDream}/>
+            style={{position: 'absolute', right: 5}}
+            name="x-square"
+            size={45}
+            color={'red'}
+            onPress={() => setEdit(false)}
+          />
+
+          <Create
+            prevDate={new Date(dream.date)}
+            prevTitle={dream.title}
+            prevPlot={dream.dreamPlot}
+            onSubmit={updateDream}
+          />
         </View>
       ) : (
         <View>
@@ -93,6 +118,15 @@ const styles = StyleSheet.create({
     // paddingBottom: 200
   },
   scroll: {},
+  button: {
+    width: 125,
+    height: 60,
+    backgroundColor: appColors.secondary,
+    alignSelf: 'center',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
 
 export default Dream;
