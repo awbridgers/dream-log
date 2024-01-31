@@ -28,11 +28,12 @@ import {fb} from '../firebase/firebaseConfig';
 type Props = {
   prevDate? : Date;
   prevTitle? : string;
+  id?: string;
   prevPlot?: string;
-  onSubmit?:  (title:string, date: Date, plot: string)=>Promise<void>
+  onSubmit?:  (id: string, title:string, date: Date, plot: string)=>Promise<void>
 }
 
-const Create = ({prevDate, prevTitle, prevPlot, onSubmit} : Props) => {
+const Create = ({prevDate, prevTitle, prevPlot, onSubmit, id} : Props) => {
   const [showDate, setShowDate] = useState<boolean>(false);
   const [date, setDate] = useState<Date>(prevDate ? prevDate : new Date());
   const [title, setTitle] = useState<string>(prevTitle ? prevTitle : 'Test');
@@ -108,7 +109,7 @@ const Create = ({prevDate, prevTitle, prevPlot, onSubmit} : Props) => {
           ></TextInput>
         </View>
         <View style={styles.formLine}>
-          <TouchableOpacity onPress={onSubmit ? ()=>onSubmit(title, date, dreamPlot) : ()=>submit()} style={styles.button}>
+          <TouchableOpacity onPress={onSubmit && id ? ()=>onSubmit(id, title, date, dreamPlot) : ()=>submit()} style={styles.button}>
             <Text style={styles.buttonText}>Submit</Text>
           </TouchableOpacity>
         </View>

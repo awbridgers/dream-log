@@ -24,33 +24,37 @@ const Dream = ({route, navigation}: Nav) => {
   const {dream} = route.params;
   const [edit, setEdit] = useState<boolean>(false);
   const user = useContext(AuthContext);
-  const updateDream = async (title: string, date: Date, plot: string) => {
-    if (user) {
-      const dreamRef = doc(
-        getFirestore(fb),
-        `/users/${user.uid}/dreams/${dream.id}`
-      );
-      const newKeywords = removeStopwords(
-        `${title} ${plot}`
-          .toLowerCase()
-          .split(' ')
-          .filter((x) => x !== '')
-      );
-      try {
-        await updateDoc(dreamRef, {
-          date,
-          dreamPlot: plot,
-          title,
-          keywords: newKeywords,
-        });
-        setEdit(false);
-        Alert.alert('Success', 'Dream has been updated.');
-      } catch (e) {
-        console.log(e);
-        Alert.alert('Error', 'There was an error updating your dream.');
-      }
-    }
-  };
+  // const updateDream = async (title: string, date: Date, plot: string) => {
+  //   if (user) {
+  //     const dreamRef = doc(
+  //       getFirestore(fb),
+  //       `/users/${user.uid}/dreams/${dream.id}`
+  //     );
+  //     const newKeywords = removeStopwords(
+  //       `${title} ${plot}`
+  //         .toLowerCase()
+  //         .split(' ')
+  //         .filter((x) => x !== '')
+  //     );
+  //     try {
+  //       await updateDoc(dreamRef, {
+  //         date,
+  //         dreamPlot: plot,
+  //         title,
+  //         keywords: newKeywords,
+  //       });
+  //       setEdit(false);
+  //       Alert.alert('Success', 'Dream has been updated.');
+  //     } catch (e) {
+  //       console.log(e);
+  //       Alert.alert('Error', 'There was an error updating your dream.');
+  //     }
+  //   }
+  // };
+  // const updateDream = async (id:string, title: string, date: Date, plot: string)=>{
+  //   await onEdit(id, title, date, plot);
+  //   setEdit(false);
+  // }
   return (
     <View style={styles.container}>
       {edit ? (
@@ -67,7 +71,7 @@ const Dream = ({route, navigation}: Nav) => {
             prevDate={new Date(dream.date)}
             prevTitle={dream.title}
             prevPlot={dream.dreamPlot}
-            onSubmit={updateDream}
+            //onSubmit={updateDream}
           />
         </View>
       ) : (

@@ -13,7 +13,8 @@ import {
   startAt,
   where,
   deleteDoc,
-  doc
+  doc,
+  updateDoc
 } from 'firebase/firestore';
 import React, {useCallback} from 'react';
 import {useEffect, useContext, useRef, useState} from 'react';
@@ -40,6 +41,7 @@ import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {Feather} from '@expo/vector-icons';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
+import { removeStopwords } from 'stopword';
 
 type DreamListScreenProps = CompositeScreenProps<
   BottomTabScreenProps<TabParamsList, 'Logs'>,
@@ -155,6 +157,43 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
     }catch(e){
       Alert.alert('Error', 'there was an issue deleting the dream.')
     }
+  }
+  const editDream = async(id:string, title: string, date: Date, plot: string ) =>{
+    if (user) {
+      const dreamRef = doc(
+        getFirestore(fb),
+        `/users/${user.uid}/dreams/${id}`
+      );
+      const newKeywords = removeStopwords(
+        `${title} ${plot}`
+          .toLowerCase()
+          .split(' ')
+          .filter((x) => x !== '')
+      );
+      try {
+        await updateDoc(dreamRef, {
+          date,
+          dreamPlot: plot,
+          title,
+          keywords: newKeywords,
+        });
+        
+        setLogs(prev=>prev.map((dream)=>{
+          if(dream.id === id) return {...dream, title, dreamPlot: plot, keywords: newKeywords, date: date.getMilliseconds() }
+          return dream
+        }))
+        Alert.alert('Success', 'Dream has been updated.');
+      } catch (e) {
+        console.log(e);
+        Alert.alert('Error', 'There was an error updating your dream.');
+      }
+    }
+  }
+  const test = (id: string)=>{
+    setLogs(prev=>prev.map((x)=>{
+      if(x.id === id) return {...x, dreamPlot: 'does this update?'}
+      return x
+    }))
   }
   const refresh = () => {
     fetchesRemaining.current = true;

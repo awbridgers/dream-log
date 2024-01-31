@@ -18,7 +18,7 @@ export type Log = {
   title: string;
   date: number;
   dreamPlot: string;
-  keywords: string;
+  keywords: string[];
   id: string;
 
 }
