@@ -43,7 +43,7 @@ import Swipeable from 'react-native-gesture-handler/Swipeable';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import { removeStopwords } from 'stopword';
 import { useAppDispatch, useAppSelector } from '../Store/hooks';
-import { resetLogs, updateLogs } from '../Store/logs';
+import { deleteLog, resetLogs, updateLogs } from '../Store/logs';
 
 type DreamListScreenProps = CompositeScreenProps<
   BottomTabScreenProps<TabParamsList, 'Logs'>,
@@ -154,15 +154,18 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
     lastFetch.current = undefined;
   };
   const removeDream = async(id: string)=>{
-    // const document = doc(db.current, `users/${user?.uid}/dreams/${id}`)
-    // try{
-    //   //delete the document from the databse
-    //   await deleteDoc(document);
-    //   //remove the document from the state list, so we don't have to refresh to show it is deleted
-    //   setLogs(prev=>prev.filter(x=>x.id!==id))
-    // }catch(e){
-    //   Alert.alert('Error', 'there was an issue deleting the dream.')
-    // }
+    if(user){
+      const document = doc(db.current, `users/${user.uid}/dreams/${id}`)
+      try{
+        //delete the document from the databse
+        await deleteDoc(document);
+        //remove the document from the state list, so we don't have to refresh to show it is deleted
+        dispatch(deleteLog(id));
+      }catch(e){
+        Alert.alert('Error', 'there was an issue deleting the dream.')
+      }
+    }
+    
   }
   
   const refresh = () => {
