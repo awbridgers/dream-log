@@ -13,6 +13,7 @@ import { Auth, User, getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { fb } from '../firebase/firebaseConfig';
 import { AuthContext } from '../firebase/authContext';
 import { useFocusEffect } from '@react-navigation/native';
+import { useAppSelector } from '../Store/hooks';
 
 type Props = NativeStackScreenProps<RootStackParamsList, 'Login'>
 
@@ -21,7 +22,7 @@ const Login = ({navigation}: Props) => {
   const [email, setEmail] = useState<string>('test@test.com');
   const [password, setPassword] = useState<string>('qazzaq');
   const authRef = useRef<Auth>(getAuth(fb))
-  const user = useContext(AuthContext)
+  const user = useAppSelector(state=>state.user)
   const submit = () => {
     signInWithEmailAndPassword(authRef.current, email, password).then((user)=>{
       console.log(user)

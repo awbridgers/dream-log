@@ -7,6 +7,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import appColors from '../colors';
 import {removeStopwords} from 'stopword';
@@ -22,30 +24,51 @@ import {
   doc,
   getFirestore,
   setDoc,
+  Timestamp,
 } from 'firebase/firestore';
 import {fb} from '../firebase/firebaseConfig';
+import {useAppDispatch, useAppSelector} from '../Store/hooks';
+import {Log, UploadLog} from '../types';
 
 type Props = {
-  prevDate? : Date;
-  prevTitle? : string;
-  prevPlot?: string;
-  onSubmit?:  (title:string, date: Date, plot: string)=>Promise<void>
-}
+  index?: number;
+  onSubmit?: (log: UploadLog) => void;
+};
 
-const Create = ({prevDate, prevTitle, prevPlot, onSubmit} : Props) => {
+const Create = ({index, onSubmit}: Props) => {
+  const dream: Log | null =
+    index !== undefined ? useAppSelector((state) => state.logs[index]) : null;
   const [showDate, setShowDate] = useState<boolean>(false);
-  const [date, setDate] = useState<Date>(prevDate ? prevDate : new Date());
-  const [title, setTitle] = useState<string>(prevTitle ? prevTitle : 'Test');
-  const [dreamPlot, setDreamPlot] = useState<string>(prevPlot ? prevPlot: 'This is a test');
-  const user = useContext(AuthContext);
+  const [date, setDate] = useState<Date>(
+    dream ? new Date(dream.date) : new Date()
+  );
+  const [title, setTitle] = useState<string>(dream ? dream.title : 'Test');
+  const [dreamPlot, setDreamPlot] = useState<string>(
+    dream ? dream.dreamPlot : 'This is a test'
+  );
+  const [loading, setLoading] = useState<boolean>(false);
+  const user = useAppSelector((state) => state.user);
   const db = useRef<Firestore>(getFirestore(fb));
+  const dispatch = useAppDispatch();
+
+  const getKeywords = () => {
+    const target = `${title} ${dreamPlot}`
+      .toLowerCase()
+      .replace('\n', ' ')
+      .split(' ')
+      .filter((x) => x !== ' ');
+    const keywords = removeStopwords(target);
+    const set = new Set(keywords);
+    return [...set];
+  };
 
   const submit = async () => {
+    setLoading(true);
     try {
-      const keywords = removeStopwords(`${title} ${dreamPlot}`.toLowerCase().split(' ').filter(x=>x!==''));
+      const keywords = getKeywords();
       const newDream = {
         title,
-        date,
+        date: Timestamp.fromDate(date),
         dreamPlot,
         keywords,
       };
@@ -62,8 +85,20 @@ const Create = ({prevDate, prevTitle, prevPlot, onSubmit} : Props) => {
         'There was an issue saving your dream. Please try again.'
       );
     }
+    setLoading(false);
   };
-
+  const edit = () => {
+    if (dream && onSubmit) {
+      const newDream = {
+        title: title,
+        date: Timestamp.fromDate(date),
+        dreamPlot: dreamPlot,
+        keywords: getKeywords(),
+        id: dream.id,
+      };
+      onSubmit(newDream);
+    }
+  };
   const changeDate = (
     e: DateTimePickerEvent,
     selectedDate: Date | undefined
@@ -73,6 +108,14 @@ const Create = ({prevDate, prevTitle, prevPlot, onSubmit} : Props) => {
   };
   return (
     <View style={styles.container}>
+      <Modal visible={loading} transparent={true} animationType="fade">
+        <View style={styles.loading}>
+          <ActivityIndicator
+            testID="spinner"
+            size={Platform.OS === 'android' ? 75 : 'large'}
+          />
+        </View>
+      </Modal>
       <KeyboardAvoidingView
         keyboardVerticalOffset={0}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -108,7 +151,10 @@ const Create = ({prevDate, prevTitle, prevPlot, onSubmit} : Props) => {
           ></TextInput>
         </View>
         <View style={styles.formLine}>
-          <TouchableOpacity onPress={onSubmit ? ()=>onSubmit(title, date, dreamPlot) : ()=>submit()} style={styles.button}>
+          <TouchableOpacity
+            onPress={onSubmit && dream ? edit : submit}
+            style={styles.button}
+          >
             <Text style={styles.buttonText}>Submit</Text>
           </TouchableOpacity>
         </View>
@@ -167,7 +213,7 @@ const styles = StyleSheet.create({
   textBody: {
     textAlignVertical: 'top',
     height: 325,
-    fontSize: 20
+    fontSize: 20,
   },
   button: {
     width: 125,
@@ -180,6 +226,12 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 25,
+  },
+  loading: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
   },
 });
 export default Create;
