@@ -1,5 +1,5 @@
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {Log, RootStackParamsList} from '../types';
+import {Log, RootStackParamsList, UploadLog} from '../types';
 import {
   View,
   StyleSheet,
@@ -7,56 +7,83 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  Modal,
+  ActivityIndicator,
+  Platform,
 } from 'react-native';
 import {Feather} from '@expo/vector-icons';
 import appColors from '../colors';
 import {useContext, useState} from 'react';
 import Create from './Create';
-import {doc, getFirestore, updateDoc} from 'firebase/firestore';
+import {Timestamp, doc, getFirestore, updateDoc,} from 'firebase/firestore';
 import {AuthContext} from '../firebase/authContext';
 import {fb} from '../firebase/firebaseConfig';
 import {removeStopwords} from 'stopword';
-import { TouchableOpacity } from 'react-native';
+import {TouchableOpacity} from 'react-native';
+import {useAppDispatch, useAppSelector} from '../Store/hooks';
+import {editLog} from '../Store/logs';
 
 type Nav = NativeStackScreenProps<RootStackParamsList, 'Dream'>;
 
+
+
 const Dream = ({route, navigation}: Nav) => {
-  const {dream} = route.params;
+  const {index} = route.params;
   const [edit, setEdit] = useState<boolean>(false);
-  const user = useContext(AuthContext);
-  // const updateDream = async (title: string, date: Date, plot: string) => {
-  //   if (user) {
-  //     const dreamRef = doc(
-  //       getFirestore(fb),
-  //       `/users/${user.uid}/dreams/${dream.id}`
-  //     );
-  //     const newKeywords = removeStopwords(
-  //       `${title} ${plot}`
-  //         .toLowerCase()
-  //         .split(' ')
-  //         .filter((x) => x !== '')
-  //     );
-  //     try {
-  //       await updateDoc(dreamRef, {
-  //         date,
-  //         dreamPlot: plot,
-  //         title,
-  //         keywords: newKeywords,
-  //       });
-  //       setEdit(false);
-  //       Alert.alert('Success', 'Dream has been updated.');
-  //     } catch (e) {
-  //       console.log(e);
-  //       Alert.alert('Error', 'There was an error updating your dream.');
-  //     }
-  //   }
-  // };
-  // const updateDream = async (id:string, title: string, date: Date, plot: string)=>{
-  //   await onEdit(id, title, date, plot);
-  //   setEdit(false);
-  // }
+  const [loading, setLoading] = useState<boolean>(false)        
+  const user = useAppSelector((state) => state.user);
+  const dream = useAppSelector((state) => state.logs[index]);
+  const dispatch = useAppDispatch();
+
+  const editDream = (log: UploadLog) => {
+    
+    Alert.alert(
+      'Confirm',
+      'Are you sure you want to make these changes to the dream?',
+      [
+        {
+          text: 'Confirm',
+          onPress: async () => {
+            setLoading(true);
+            if (user) {
+              const dreamRef = doc(
+                getFirestore(fb),
+                `/users/${user.uid}/dreams/${dream.id}`
+              );
+              try {
+                await updateDoc(dreamRef, log);
+                //after updating it in the database, update it locally so it changes
+                //without needing a refresh
+                dispatch(editLog({...log, date: log.date.toMillis()}))
+                setEdit(false);
+                setLoading(false)
+                Alert.alert('Success', 'Dream has been updated.');
+              } catch (e) {
+                console.log(e);
+                Alert.alert('Error', 'There was an error updating your dream.');
+                setLoading(false)
+              }
+            }
+          },
+        },
+        {
+          text: 'Cancel',
+          onPress:()=>setLoading(false)
+        },
+      ],
+      {cancelable: false}
+    );
+  };
   return (
     <View style={styles.container}>
+      <Modal visible = {loading} transparent = {true} animationType = 'fade'>
+      <View style={styles.loading}>
+          <ActivityIndicator
+            testID="spinner"
+            size={Platform.OS === 'android' ? 75 : 'large'}
+          />
+        </View>
+      </Modal>
       {edit ? (
         <View style={{flex: 1}}>
           <Feather
@@ -67,12 +94,7 @@ const Dream = ({route, navigation}: Nav) => {
             onPress={() => setEdit(false)}
           />
 
-          <Create
-            prevDate={new Date(dream.date)}
-            prevTitle={dream.title}
-            prevPlot={dream.dreamPlot}
-            //onSubmit={updateDream}
-          />
+          <Create index={index} onSubmit={editDream} />
         </View>
       ) : (
         <View>
@@ -130,6 +152,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  loading: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
   },
 });
 

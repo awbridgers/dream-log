@@ -42,6 +42,8 @@ import {Feather} from '@expo/vector-icons';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import { removeStopwords } from 'stopword';
+import { useAppDispatch, useAppSelector } from '../Store/hooks';
+import { resetLogs, updateLogs } from '../Store/logs';
 
 type DreamListScreenProps = CompositeScreenProps<
   BottomTabScreenProps<TabParamsList, 'Logs'>,
@@ -69,9 +71,11 @@ const rightSwipeActions = ({onPress} : trashCan) => {
 };
 
 const DreamList = ({navigation}: DreamListScreenProps) => {
-  const user = useContext(AuthContext);
+  const user = useAppSelector(state=>state.user);
+  const logs = useAppSelector(state=>state.logs)
+  const dispatch = useAppDispatch();
   const db = useRef<Firestore>(getFirestore(fb));
-  const [logs, setLogs] = useState<Log[]>([]);
+  //const [logs, setLogs] = useState<Log[]>([]);
   //const [nextFetch, setNextFetch] = useState<number>(0)
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshingList, setIsRefreshingList] = useState<boolean>(true);
@@ -82,6 +86,7 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
   const searchBarRef = useRef<TextInput | null>(null);
   const callOnScrollEnd = useRef<boolean>(false);
   useEffect(() => {
+    
     const fetch = async () => {
       if (user && fetchesRemaining.current && isRefreshingList) {
         setIsLoading(true);
@@ -90,6 +95,7 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
             ? where('keywords', 'array-contains-any', searchTerms)
             : where('date', '!=', null);
         let q: Query;
+        //console.log(searchTerms)
         if (!lastFetch.current) {
           //the first fetch, start at the beginning of the database
           q = query(
@@ -123,7 +129,7 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
               })
             );
             //console.log(data)
-            setLogs((prev) => [...prev, ...data]);
+            dispatch(updateLogs(data))
           }
         } catch (e) {
           console.log(e instanceof Error ? e.message : 'Error');
@@ -136,7 +142,7 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
   }, [searchTerms, user, isRefreshingList]);
 
   const search = () => {
-    setLogs([]);
+   dispatch(resetLogs([]))
     setSearchTerms(
       searchText
         .toLowerCase()
@@ -148,57 +154,21 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
     lastFetch.current = undefined;
   };
   const removeDream = async(id: string)=>{
-    const document = doc(db.current, `users/${user?.uid}/dreams/${id}`)
-    try{
-      //delete the document from the databse
-      await deleteDoc(document);
-      //remove the document from the state list, so we don't have to refresh to show it is deleted
-      setLogs(prev=>prev.filter(x=>x.id!==id))
-    }catch(e){
-      Alert.alert('Error', 'there was an issue deleting the dream.')
-    }
+    // const document = doc(db.current, `users/${user?.uid}/dreams/${id}`)
+    // try{
+    //   //delete the document from the databse
+    //   await deleteDoc(document);
+    //   //remove the document from the state list, so we don't have to refresh to show it is deleted
+    //   setLogs(prev=>prev.filter(x=>x.id!==id))
+    // }catch(e){
+    //   Alert.alert('Error', 'there was an issue deleting the dream.')
+    // }
   }
-  const editDream = async(id:string, title: string, date: Date, plot: string ) =>{
-    if (user) {
-      const dreamRef = doc(
-        getFirestore(fb),
-        `/users/${user.uid}/dreams/${id}`
-      );
-      const newKeywords = removeStopwords(
-        `${title} ${plot}`
-          .toLowerCase()
-          .split(' ')
-          .filter((x) => x !== '')
-      );
-      try {
-        await updateDoc(dreamRef, {
-          date,
-          dreamPlot: plot,
-          title,
-          keywords: newKeywords,
-        });
-        
-        setLogs(prev=>prev.map((dream)=>{
-          if(dream.id === id) return {...dream, title, dreamPlot: plot, keywords: newKeywords, date: date.getMilliseconds() }
-          return dream
-        }))
-        Alert.alert('Success', 'Dream has been updated.');
-      } catch (e) {
-        console.log(e);
-        Alert.alert('Error', 'There was an error updating your dream.');
-      }
-    }
-  }
-  const test = (id: string)=>{
-    setLogs(prev=>prev.map((x)=>{
-      if(x.id === id) return {...x, dreamPlot: 'does this update?'}
-      return x
-    }))
-  }
+  
   const refresh = () => {
     fetchesRemaining.current = true;
     lastFetch.current = undefined;
-    setLogs([]);
+    dispatch(resetLogs([]));
     setIsRefreshingList(true);
   };
   return (
@@ -254,7 +224,7 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
             >
               <View>
                 <Pressable
-                  onPress={() => navigation.navigate('Dream', {dream: item})}
+                  onPress={() => navigation.navigate('Dream', {index: index})}
                   style={styles.box}
                 >
                   <View style={styles.dateContainer}>
