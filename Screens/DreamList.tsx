@@ -14,7 +14,7 @@ import {
   where,
   deleteDoc,
   doc,
-  updateDoc
+  updateDoc,
 } from 'firebase/firestore';
 import React, {useCallback} from 'react';
 import {useEffect, useContext, useRef, useState} from 'react';
@@ -41,9 +41,9 @@ import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {Feather} from '@expo/vector-icons';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
-import { removeStopwords } from 'stopword';
-import { useAppDispatch, useAppSelector } from '../Store/hooks';
-import { deleteLog, resetLogs, updateLogs } from '../Store/logs';
+import {removeStopwords} from 'stopword';
+import {useAppDispatch, useAppSelector} from '../Store/hooks';
+import {deleteLog, resetLogs, updateLogs} from '../Store/logs';
 
 type DreamListScreenProps = CompositeScreenProps<
   BottomTabScreenProps<TabParamsList, 'Logs'>,
@@ -51,19 +51,28 @@ type DreamListScreenProps = CompositeScreenProps<
 >;
 
 type trashCan = {
-  onPress: ()=>Promise<void>
-}
-const rightSwipeActions = ({onPress} : trashCan) => {
+  onPress: () => Promise<void>;
+};
+const rightSwipeActions = ({onPress}: trashCan) => {
   return (
     <TouchableOpacity
       style={styles.delete}
-      onPress={()=>Alert.alert('Confirm', 'Are you sure you want to delete this dream?', [{
-        text: 'Delete',
-        onPress: onPress,
-
-      },{
-        text: 'Cancel',
-      }], {cancelable: true})}
+      onPress={() =>
+        Alert.alert(
+          'Confirm',
+          'Are you sure you want to delete this dream?',
+          [
+            {
+              text: 'Delete',
+              onPress: onPress,
+            },
+            {
+              text: 'Cancel',
+            },
+          ],
+          {cancelable: true}
+        )
+      }
     >
       <Feather name="trash-2" size={25} color="black" />
     </TouchableOpacity>
@@ -71,8 +80,8 @@ const rightSwipeActions = ({onPress} : trashCan) => {
 };
 
 const DreamList = ({navigation}: DreamListScreenProps) => {
-  const user = useAppSelector(state=>state.user);
-  const logs = useAppSelector(state=>state.logs)
+  const user = useAppSelector((state) => state.user);
+  const logs = useAppSelector((state) => state.logs);
   const dispatch = useAppDispatch();
   const db = useRef<Firestore>(getFirestore(fb));
   //const [logs, setLogs] = useState<Log[]>([]);
@@ -81,12 +90,13 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
   const [isRefreshingList, setIsRefreshingList] = useState<boolean>(true);
   const [searchText, setSearchText] = useState<string>('');
   const [searchTerms, setSearchTerms] = useState<string[]>([]);
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
   const lastFetch = useRef<QueryDocumentSnapshot>();
   const fetchesRemaining = useRef<boolean>(true);
   const searchBarRef = useRef<TextInput | null>(null);
   const callOnScrollEnd = useRef<boolean>(false);
   useEffect(() => {
-    
     const fetch = async () => {
       if (user && fetchesRemaining.current && isRefreshingList) {
         setIsLoading(true);
@@ -94,6 +104,8 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
           searchTerms.length > 0
             ? where('keywords', 'array-contains-any', searchTerms)
             : where('date', '!=', null);
+            const searchDateStart = where('date', '>=', startDate ? startDate : new Date(0))
+            const searchDateEnd = where('date', '<=', endDate ? endDate : new Date(90000000000000))
         let q: Query;
         //console.log(searchTerms)
         if (!lastFetch.current) {
@@ -102,7 +114,10 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
             collection(db.current, 'users', user.uid, 'dreams'),
             orderBy('date', 'desc'),
             limit(10),
-            searchKeywords
+            searchKeywords,
+            searchDateStart,
+            searchDateEnd
+            
           );
         } else {
           //a subsequent fetch, start after the last fetched log
@@ -111,7 +126,9 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
             orderBy('date', 'desc'),
             startAfter(lastFetch.current),
             limit(10),
-            searchKeywords
+            searchKeywords,
+            searchDateStart,
+            searchDateEnd
           );
         }
         try {
@@ -129,7 +146,7 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
               })
             );
             //console.log(data)
-            dispatch(updateLogs(data))
+            dispatch(updateLogs(data));
           }
         } catch (e) {
           console.log(e instanceof Error ? e.message : 'Error');
@@ -139,35 +156,38 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
       }
     };
     fetch();
-  }, [searchTerms, user, isRefreshingList]);
+  }, [searchTerms, user, isRefreshingList, startDate, endDate]);
 
   const search = () => {
-   dispatch(resetLogs([]))
-    setSearchTerms(
-      searchText
-        .toLowerCase()
-        .split(' ')
-        .filter((x) => x !== '')
-    );
+    let searchString = searchText.toLowerCase();
+    //date codes
+    const [from] = searchString.match(/from:\d{4}-\d{2}-\d{2}/) || [null];
+    const [to] = searchString.match(/to:\d{4}-\d{2}-\d{2}/) || [null];
+    const fromDate = from ? new Date(from.replace('from:', '')) : null;
+    const toDate = to ? new Date(to.replace('to:', '')) : null;
+    searchString = searchString.replace(to ? to : '', '').replace(from ? from: '', '')
+    dispatch(resetLogs([]));
+    setSearchTerms(searchString.split(' ').filter((x) => x !== ''));
+    setEndDate(toDate);
+    setStartDate(fromDate);
     setIsRefreshingList(true);
     fetchesRemaining.current = true;
     lastFetch.current = undefined;
   };
-  const removeDream = async(id: string)=>{
-    if(user){
-      const document = doc(db.current, `users/${user.uid}/dreams/${id}`)
-      try{
+  const removeDream = async (id: string) => {
+    if (user) {
+      const document = doc(db.current, `users/${user.uid}/dreams/${id}`);
+      try {
         //delete the document from the databse
         await deleteDoc(document);
         //remove the document from the state list, so we don't have to refresh to show it is deleted
         dispatch(deleteLog(id));
-      }catch(e){
-        Alert.alert('Error', 'there was an issue deleting the dream.')
+      } catch (e) {
+        Alert.alert('Error', 'there was an issue deleting the dream.');
       }
     }
-    
-  }
-  
+  };
+
   const refresh = () => {
     fetchesRemaining.current = true;
     lastFetch.current = undefined;
@@ -195,6 +215,8 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
             onPress={() => {
               setSearchText('');
               setSearchTerms([]);
+              setEndDate(null);
+              setStartDate(null)
               Keyboard.dismiss();
               refresh();
             }}
@@ -222,7 +244,9 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
         renderItem={({item, index}) => (
           <GestureHandlerRootView>
             <Swipeable
-              renderRightActions={()=>rightSwipeActions({onPress:()=>removeDream(item.id)})}
+              renderRightActions={() =>
+                rightSwipeActions({onPress: () => removeDream(item.id)})
+              }
               overshootRight={false}
             >
               <View>
