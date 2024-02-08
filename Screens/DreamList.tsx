@@ -16,8 +16,7 @@ import {
   doc,
   updateDoc,
 } from 'firebase/firestore';
-import React, {useCallback} from 'react';
-import {useEffect, useContext, useRef, useState} from 'react';
+import {useEffect, useContext, useRef, useState, useCallback} from 'react';
 import {
   Text,
   View,
@@ -30,12 +29,13 @@ import {
   Keyboard,
   TextInput,
   Alert,
+  BackHandler,
 } from 'react-native';
 import {Log, RootStackParamsList, TabParamsList} from '../types';
 import {AuthContext} from '../firebase/authContext';
 import {fb} from '../firebase/firebaseConfig';
 import appColors from '../colors';
-import type {CompositeScreenProps} from '@react-navigation/native';
+import {useFocusEffect, type CompositeScreenProps} from '@react-navigation/native';
 import type {BottomTabScreenProps} from '@react-navigation/bottom-tabs';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {Feather} from '@expo/vector-icons';
@@ -96,6 +96,17 @@ const DreamList = ({navigation}: DreamListScreenProps) => {
   const fetchesRemaining = useRef<boolean>(true);
   const searchBarRef = useRef<TextInput | null>(null);
   const callOnScrollEnd = useRef<boolean>(false);
+  useFocusEffect(useCallback(()=>{
+    const handleBackPress = () =>{
+      if(user){
+        BackHandler.exitApp()
+        return true;
+      }
+      return false
+    }
+    const subscription = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+    return ()=>subscription.remove();
+  },[user]))
   useEffect(() => {
     const fetch = async () => {
       if (user && fetchesRemaining.current && isRefreshingList) {
