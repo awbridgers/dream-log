@@ -10,10 +10,11 @@ import {
   Modal,
   ActivityIndicator,
   Platform,
+  BackHandler,
 } from 'react-native';
 import {Feather} from '@expo/vector-icons';
 import appColors from '../colors';
-import {useContext, useState} from 'react';
+import {useCallback, useContext, useState} from 'react';
 import Create from './Create';
 import {Timestamp, doc, getFirestore, updateDoc,} from 'firebase/firestore';
 import {AuthContext} from '../firebase/authContext';
@@ -22,6 +23,7 @@ import {removeStopwords} from 'stopword';
 import {TouchableOpacity} from 'react-native';
 import {useAppDispatch, useAppSelector} from '../Store/hooks';
 import {editLog} from '../Store/logs';
+import { useFocusEffect } from '@react-navigation/native';
 
 type Nav = NativeStackScreenProps<RootStackParamsList, 'Dream'>;
 
@@ -35,6 +37,17 @@ const Dream = ({route, navigation}: Nav) => {
   const dream = useAppSelector((state) => state.logs[index]);
   const dispatch = useAppDispatch();
 
+  useFocusEffect(useCallback(()=>{
+    const onBackPress = ()=>{
+      if(edit){
+        setEdit(false);
+        return true;
+      }
+      return false
+    }
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return ()=>subscription.remove();
+  },[edit]))
   const editDream = (log: UploadLog) => {
     
     Alert.alert(
